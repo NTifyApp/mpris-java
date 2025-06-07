@@ -1,4 +1,4 @@
-package org.mpris;
+package org.mpris.v2;
 
 import org.freedesktop.dbus.DBusPath;
 import org.freedesktop.dbus.types.Variant;
@@ -228,9 +228,6 @@ public class Metadata {
         public Metadata build() throws IllegalArgumentException {
             if(!internalMap.containsKey("mpris:trackid")) {
                 throw new IllegalArgumentException("mpris:trackid not set");
-            }
-            if(!internalMap.containsKey("mpris:length")) {
-                throw new IllegalArgumentException("mpris:length not set");
             }
             return new Metadata(internalMap);
         }
