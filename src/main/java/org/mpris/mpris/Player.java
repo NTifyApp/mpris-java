@@ -6,6 +6,7 @@ import org.freedesktop.dbus.annotations.DBusProperty;
 import org.freedesktop.dbus.exceptions.DBusException;
 import org.freedesktop.dbus.interfaces.DBusInterface;
 import org.freedesktop.dbus.messages.DBusSignal;
+import org.mpris.v2.MPRISObjectPaths;
 
 import java.util.Map;
 
@@ -119,7 +120,7 @@ public interface Player extends DBusInterface {
      *            property and the mime-type should match one of the elements of the
      *            org.mpris.MediaPlayer2.SupportedMimeTypes.
      */
-    void OpenURI(String Uri);
+    void OpenURI(String Uri) throws DBusException;
 
     /**
      * Indicates that the track position has changed in a way that is inconsistant with the current playing state.
@@ -133,12 +134,11 @@ public interface Player extends DBusInterface {
         private final long timeInUs;
 
         /**
-         * @param _path The path where the signal should be emitted
          * @param _timeInUs The new position, in microseconds.
          * @throws DBusException
          */
-        public Seeked(String _path, long _timeInUs) throws DBusException {
-            super(_path);
+        public Seeked(long _timeInUs) throws DBusException {
+            super("org/mpris/MediaPlayer2/TrackList");
             timeInUs = _timeInUs;
         }
 

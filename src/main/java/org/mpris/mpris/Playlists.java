@@ -8,6 +8,7 @@ import org.freedesktop.dbus.annotations.Position;
 import org.freedesktop.dbus.exceptions.DBusException;
 import org.freedesktop.dbus.interfaces.DBusInterface;
 import org.freedesktop.dbus.messages.DBusSignal;
+import org.mpris.v2.MPRISObjectPaths;
 
 import java.util.List;
 
@@ -98,12 +99,9 @@ public interface Playlists extends DBusInterface {
     /**
      * A data structure describing a playlist.
      */
-    class Playlist extends Struct {
-        @Position(0)
+    class Playlist extends DBusSignal {
         private DBusPath id;
-        @Position(1)
         private String name;
-        @Position(2)
         private String icon;
 
         /**
@@ -111,7 +109,8 @@ public interface Playlists extends DBusInterface {
          * @param name The name of the playlist, typically given by the user.
          * @param icon The URI of an (optional) icon.
          */
-        public Playlist(DBusPath id, String name, String icon) {
+        public Playlist(DBusPath id, String name, String icon) throws DBusException {
+            super("org/mpris/MediaPlayer2/Playlists");
             this.id = id;
             this.name = name;
             this.icon = icon;
