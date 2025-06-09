@@ -1,4 +1,4 @@
-package org.mpris.v2;
+package org.mpris;
 
 import org.freedesktop.dbus.DBusPath;
 import org.freedesktop.dbus.connections.impl.DBusConnection;
@@ -7,8 +7,6 @@ import org.freedesktop.dbus.errors.UnknownInterface;
 import org.freedesktop.dbus.exceptions.DBusException;
 import org.freedesktop.dbus.interfaces.Properties;
 import org.freedesktop.dbus.types.Variant;
-import org.mpris.ReturnableTypeRunnable;
-import org.mpris.TypeRunnable;
 import org.mpris.mpris.DBusProperties;
 import org.mpris.mpris.PlaylistOrdering;
 import org.mpris.mpris.Playlists;
@@ -17,11 +15,10 @@ import java.util.*;
 
 @SuppressWarnings({"unused", "unchecked"})
 public class PlaylistsImpl implements DBusProperties, Playlists {
-    private final DBusConnection connection;
+    private DBusConnection connection;
     private final Map<String, Object> values;
 
-    PlaylistsImpl(DBusConnection connection, Map<String, Object> values) {
-        this.connection = connection;
+    PlaylistsImpl(Map<String, Object> values) {
         this.values = values;
     }
 
@@ -29,9 +26,19 @@ public class PlaylistsImpl implements DBusProperties, Playlists {
         private final Map<String, Object> values = new HashMap<String, Object>() {{
             put("PlaylistCount", new Variant<>(0, "u"));
             put("Orderings", new Variant<>(new String[] {PlaylistOrdering.ModifiedDate.GetAsString()}, "as"));
-            put("ActivePlaylist", new Variant<>(new Maybe_Playlist(false, null), "(b(oss))"));
+            put("ActivePlaylist", new Variant<>(new Maybe_Playlist(false, new Playlist(new DBusPath("/"), "", "")), "(b(oss))"));
+            put("OnActivatePlaylist", new TypeRunnable<DBusPath>() {
+                @Override
+                public void run(DBusPath value) {
+                }
+            });
+            put("OnGetPlaylists", new ReturnableTypeRunnable<List<Playlist>, GetPlaylists>() {
+                @Override
+                public List<Playlist> run(GetPlaylists value) {
+                    return Collections.emptyList();
+                }
+            });
         }};
-        private DBusConnection connection;
 
         // Properties
 
@@ -92,16 +99,12 @@ public class PlaylistsImpl implements DBusProperties, Playlists {
             return this;
         }
 
-        void setConnection(DBusConnection connection) {
-            this.connection = connection;
-        }
-
         /**
          * Builds and instance of PlaylistsImpl
          * @return Built instance of PlaylistsImpl
          */
         public PlaylistsImpl build() {
-            return new PlaylistsImpl(connection, values);
+            return new PlaylistsImpl(values);
         }
     }
 
@@ -134,6 +137,10 @@ public class PlaylistsImpl implements DBusProperties, Playlists {
         public boolean isReverseOrder() {
             return reverseOrder;
         }
+    }
+
+    protected void setConnection(DBusConnection connection) {
+        this.connection = connection;
     }
 
     /**
@@ -172,7 +179,7 @@ public class PlaylistsImpl implements DBusProperties, Playlists {
         update("ActivatePlaylists", new Variant<>(playlist, "(b(oss))"));
     }
 
-    public void emitPlaylistChanged(Playlist playlist) {
+    public void emitPlaylistChanged(PlaylistSignal playlist) {
         connection.sendMessage(playlist);
     }
 

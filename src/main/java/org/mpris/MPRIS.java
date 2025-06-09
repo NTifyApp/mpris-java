@@ -1,4 +1,4 @@
-package org.mpris.v2;
+package org.mpris;
 
 import org.freedesktop.dbus.DBusPath;
 import org.freedesktop.dbus.connections.impl.DBusConnection;
@@ -33,7 +33,6 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
     private final DBusConnection connection;
     private boolean blockWriting = false;
     private final MPRIS self;
-    private final boolean isPlaylistsSupported = false;
     private TrackListImpl trackList = null;
     private PlaylistsImpl playlists = null;
 
@@ -64,22 +63,6 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
             this.playerValues.put("CanPlay", new Variant<>(false));
             this.playerValues.put("CanPause", new Variant<>(false));
             this.playerValues.put("CanSeek", new Variant<>(false));
-
-            if(this.playerValues.containsKey("OnFullscreen")) {
-                System.out.println("[Warning] OnFullscreen will never be called due to CanControl being false");
-            }
-            if(this.playerValues.containsKey("OnLoopStatus")) {
-                System.out.println("[Warning] OnLoopStatus will never be called due to CanControl being false");
-            }
-            if(this.playerValues.containsKey("OnRate")) {
-                System.out.println("[Warning] OnRate will never be called due to CanControl being false");
-            }
-            if(this.playerValues.containsKey("OnShuffle")) {
-                System.out.println("[Warning] OnShuffle will never be called due to CanControl being false");
-            }
-            if(this.playerValues.containsKey("OnVolume")) {
-                System.out.println("[Warning] OnVolume will never be called due to CanControl being false");
-            }
         }
 
         ArrayList<Class<?>> exportedInterfaces = new ArrayList<Class<?>>() {{
@@ -91,11 +74,13 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
         if(((Variant<Boolean>) this.mediaPlayerValues.get("HasTrackList")).getValue()) {
             exportedInterfaces.add(TrackList.class);
             this.trackList = trackList;
+            this.trackList.setConnection(connection);
         }
 
-        if(isPlaylistsSupported) {
+        if(playlists != null) {
             exportedInterfaces.add(Playlists.class);
             this.playlists = playlists;
+            this.playlists.setConnection(connection);
         }
 
         this.connection = connection;
@@ -140,6 +125,7 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
                         playlists.Set(args[0].toString(), args[1].toString(), (Variant<?>) args[2]);
                         return null;
                     }
+                    break;
 
                 case "GetTracksMetadata":
                     if(trackList == null) throw new DBusException("Player doesn't support TrackList");
@@ -167,6 +153,14 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
             }
         }
         return method.invoke(self, args);
+    }
+
+    public PlaylistsImpl getPlaylists() {
+        return playlists;
+    }
+
+    public TrackListImpl getTrackList() {
+        return trackList;
     }
 
     /**
@@ -258,7 +252,7 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
      * @see <a href="https://specifications.freedesktop.org/mpris-spec/latest/Media_Player.html#Property:SupportedUriSchemes">freedesktop.org</a>
      */
     public void setSupportedUriSchemes(String... supportedUriSchemes) throws DBusException {
-        this.mediaPlayerValues.put("SupportedUriSchemes", new Variant<>(supportedUriSchemes));
+        this.mediaPlayerValues.put("SupportedUriSchemes", new Variant<>(supportedUriSchemes, "as"));
         update("SupportedUriSchemes", (Variant<?>) mediaPlayerValues.get("SupportedUriSchemes"), MPRISObjectPaths.MEDIAPLAYER2);
     }
 
@@ -271,7 +265,7 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
      * @see <a href="https://specifications.freedesktop.org/mpris-spec/latest/Media_Player.html#Property:SupportedMimeTypes">freedesktop.org</a>
      */
     public void setSupportedMimeTypes(String... supportedMimeTypes) throws DBusException {
-        this.mediaPlayerValues.put("SupportedMimeTypes", new Variant<>(supportedMimeTypes));
+        this.mediaPlayerValues.put("SupportedMimeTypes", new Variant<>(supportedMimeTypes, "as"));
         update("SupportedMimeTypes", (Variant<?>) mediaPlayerValues.get("SupportedMimeTypes"), MPRISObjectPaths.MEDIAPLAYER2);
     }
 
@@ -539,15 +533,15 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
     }
 
     @Override
-    public void Seek(int x) {
+    public void Seek(long x) {
         // If the CanSeek property is false, this has no effect.
         if(!((Variant<Boolean>) playerValues.get("CanSeek")).getValue())
             return;
-        ((TypeRunnable<Integer>) playerValues.get("OnSeek")).run(x);
+        ((TypeRunnable<Long>) playerValues.get("OnSeek")).run(x);
     }
 
     @Override
-    public void SetPosition(DBusPath Track_Id, int x) {
+    public void SetPosition(DBusPath Track_Id, long x) {
         // If the CanSeek property is false, this has no effect.
         if(!((Variant<Boolean>) playerValues.get("CanSeek")).getValue())
             return;
@@ -558,7 +552,7 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
     }
 
     @Override
-    public void OpenURI(String Uri) throws DBusException {
+    public void OpenUri(String Uri) throws DBusException {
         try {
             // If the uri scheme of the uri to open is not supported, this method does nothing and may raise an error.
             if (!((Variant<List<String>>) mediaPlayerValues.get("SupportedUriSchemes")).getValue().contains(Uri.split(":")[0]))
@@ -628,7 +622,7 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
             case "org.mpris.MediaPlayer2": {
                 if(mediaPlayerValues.containsKey(property_name)) {
                     if (mediaPlayerReadWriteValues.contains(property_name)) {
-                        if(((Variant<?>)mediaPlayerValues.get(property_name)).getType() != value.getType()) {
+                        if(!Objects.equals(((Variant<?>) mediaPlayerValues.get(property_name)).getSig(), value.getSig())) {
                             throw new DBusException("Variant has an invalid type: " + value.getSig());
                         }
                         mediaPlayerValues.put(property_name, value);
@@ -646,7 +640,7 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
             case "org.mpris.MediaPlayer2.Player": {
                 if(playerValues.containsKey(property_name)) {
                     if (playerReadWriteValues.contains(property_name)) {
-                        if(((Variant<?>)playerValues.get(property_name)).getType() != value.getType()) {
+                        if(!Objects.equals(((Variant<?>) playerValues.get(property_name)).getSig(), value.getSig())) {
                             throw new DBusException("Variant has an invalid type: " + value.getSig());
                         }
                         playerValues.put(property_name, value);

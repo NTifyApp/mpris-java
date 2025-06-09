@@ -1,10 +1,10 @@
-package org.mpris.v2;
+package org.mpris;
 
 import org.freedesktop.dbus.DBusPath;
 
 public class Position {
     private DBusPath path;
-    private Integer position;
+    private Long position;
 
     /**
      * @param path
@@ -19,7 +19,7 @@ public class Position {
     <br>
     This must be between 0 and <track_length>.
      */
-    public Position(DBusPath path, Integer position) {
+    public Position(DBusPath path, Long position) {
         this.path = path;
         this.position = position;
     }
@@ -34,7 +34,7 @@ public class Position {
     /**
      * @return Time in microseconds
      */
-    public Integer getPosition() {
+    public Long getPosition() {
         return position;
     }
 }

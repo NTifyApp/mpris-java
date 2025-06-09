@@ -6,7 +6,6 @@ import org.freedesktop.dbus.annotations.DBusProperty;
 import org.freedesktop.dbus.exceptions.DBusException;
 import org.freedesktop.dbus.interfaces.DBusInterface;
 import org.freedesktop.dbus.messages.DBusSignal;
-import org.mpris.v2.MPRISObjectPaths;
 
 import java.util.Map;
 
@@ -87,7 +86,7 @@ public interface Player extends DBusInterface {
      * If the CanSeek property is false, this has no effect.
      * @param x The number of microseconds to seek forward.
      */
-    void Seek(int x);
+    void Seek(long x);
 
     /**
      * Sets the current track position in microseconds.
@@ -100,7 +99,7 @@ public interface Player extends DBusInterface {
      * /org/mpris/MediaPlayer2/TrackList/NoTrack is not a valid value for this argument.
      * @param x Track position in microseconds. Between 0 and track length
      */
-    void SetPosition(DBusPath Track_Id, int x);
+    void SetPosition(DBusPath Track_Id, long x);
 
     /**
      * Opens the Uri given as an argument
@@ -120,7 +119,7 @@ public interface Player extends DBusInterface {
      *            property and the mime-type should match one of the elements of the
      *            org.mpris.MediaPlayer2.SupportedMimeTypes.
      */
-    void OpenURI(String Uri) throws DBusException;
+    void OpenUri(String Uri) throws DBusException;
 
     /**
      * Indicates that the track position has changed in a way that is inconsistant with the current playing state.

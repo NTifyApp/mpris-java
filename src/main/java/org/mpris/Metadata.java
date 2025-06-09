@@ -229,9 +229,6 @@ public class Metadata {
             if(!internalMap.containsKey("mpris:trackid")) {
                 throw new IllegalArgumentException("mpris:trackid not set");
             }
-            if(!internalMap.containsKey("mpris:length")) {
-                throw new IllegalArgumentException("mpris:length not set");
-            }
             return new Metadata(internalMap);
         }
     }

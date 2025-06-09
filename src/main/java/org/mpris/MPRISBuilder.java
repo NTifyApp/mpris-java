@@ -1,4 +1,4 @@
-package org.mpris.v2;
+package org.mpris;
 
 import org.freedesktop.dbus.connections.impl.DBusConnection;
 import org.freedesktop.dbus.exceptions.DBusException;
@@ -6,7 +6,7 @@ import org.freedesktop.dbus.types.Variant;
 import org.mpris.mpris.LoopStatus;
 import org.mpris.mpris.PlaybackStatus;
 
-import java.util.HashMap;
+import java.util.*;
 
 public class MPRISBuilder {
     private final HashMap<String, Object> mediaPlayerValues = new HashMap<String, Object>() {{
@@ -18,8 +18,8 @@ public class MPRISBuilder {
         put("HasTrackList", new Variant<>(false));
         put("Identity", new Variant<>(""));
         put("DesktopEntry", new Variant<>(""));
-        put("SupportedUriSchemes", new Variant<>(new String[] {}));
-        put("SupportedMimeTypes", new Variant<>(new String[] {}));
+        put("SupportedUriSchemes", new Variant<>(Collections.emptyList(), "as"));
+        put("SupportedMimeTypes", new Variant<>(Collections.emptyMap(), "as"));
 
         // Methods
         put("onRaise", new Runnable() {
@@ -52,55 +52,48 @@ public class MPRISBuilder {
         put("CanControl", new Variant<>(false));
         put("Metadata", new Variant<>(new HashMap<String, Variant<?>>(), "a{sv}"));
 
-        // Signals
-        put("onSignalSeeked", new TypeRunnable<Long>() {
-            @Override
-            public void run(Long value) {
-            }
-        });
-
         // Methods
-        put("onNext", new Runnable() {
+        put("OnNext", new Runnable() {
             @Override
             public void run() {
             }
         });
-        put("onPrevious", new Runnable() {
+        put("OnPrevious", new Runnable() {
             @Override
             public void run() {
             }
         });
-        put("onPause", new Runnable() {
+        put("OnPause", new Runnable() {
             @Override
             public void run() {
             }
         });
-        put("onPlayPause", new Runnable() {
+        put("OnPlayPause", new Runnable() {
             @Override
             public void run() {
             }
         });
-        put("onStop", new Runnable() {
+        put("OnStop", new Runnable() {
             @Override
             public void run() {
             }
         });
-        put("onPlay", new Runnable() {
+        put("OnPlay", new Runnable() {
             @Override
             public void run() {
             }
         });
-        put("onSeek", new TypeRunnable<Integer>() {
+        put("OnSeek", new TypeRunnable<Integer>() {
             @Override
             public void run(Integer value) {
             }
         });
-        put("onSetPosition", new TypeRunnable<Position>() {
+        put("OnSetPosition", new TypeRunnable<Position>() {
             @Override
             public void run(Position value) {
             }
         });
-        put("onOpenURI", new TypeRunnable<String>() {
+        put("OnOpenURI", new TypeRunnable<String>() {
             @Override
             public void run(String value) {
             }
@@ -108,10 +101,29 @@ public class MPRISBuilder {
     }};
     private TrackListImpl trackList;
     private PlaylistsImpl playlists;
-    private DBusConnection connection;
+    private final DBusConnection connection;
 
     public MPRISBuilder() throws DBusException {
         this.connection = DBusConnection.newConnection(DBusConnection.DBusBusType.SESSION);
+    }
+
+    /**
+     * Adds support for Playlists
+     * @see <a href="https://specifications.freedesktop.org/mpris-spec/latest/Playlists_Interface.html#Enum:Playlist_Ordering">freedesktop.org</a>
+     */
+    public MPRISBuilder addPlaylistsSupport(PlaylistsImpl playlists) {
+        this.playlists = playlists;
+        return this;
+    }
+
+    /**
+     * Adds support for TrackList
+     * @see <a href="https://specifications.freedesktop.org/mpris-spec/latest/Track_List_Interface.html">freedesktop.org</a>
+     */
+    public MPRISBuilder addTrackListSupport(TrackListImpl trackList) {
+        this.trackList = trackList;
+        setHasTrackList(true);
+        return this;
     }
 
     // Properties
@@ -205,7 +217,8 @@ public class MPRISBuilder {
      * @see <a href="https://specifications.freedesktop.org/mpris-spec/latest/Media_Player.html#Property:SupportedUriSchemes">freedesktop.org</a>
      */
     public MPRISBuilder setSupportedUriSchemes(String... supportedUriSchemes) {
-        this.mediaPlayerValues.put("SupportedUriSchemes", new Variant<>(supportedUriSchemes));
+        List<String> stringList = new ArrayList<>(Arrays.asList(supportedUriSchemes));
+        this.mediaPlayerValues.put("SupportedUriSchemes", new Variant<>(stringList, "as"));
         return this;
     }
 
@@ -218,7 +231,8 @@ public class MPRISBuilder {
      * @see <a href="https://specifications.freedesktop.org/mpris-spec/latest/Media_Player.html#Property:SupportedMimeTypes">freedesktop.org</a>
      */
     public MPRISBuilder setSupportedMimeTypes(String... supportedMimeTypes) {
-        this.mediaPlayerValues.put("SupportedMimeTypes", new Variant<>(supportedMimeTypes));
+        List<String> stringList = new ArrayList<>(Arrays.asList(supportedMimeTypes));
+        this.mediaPlayerValues.put("SupportedMimeTypes", new Variant<>(stringList, "as"));
         return this;
     }
 
@@ -504,7 +518,7 @@ public class MPRISBuilder {
      * @param onSeek The number of microseconds to seek forward.
      * @see <a href="https://specifications.freedesktop.org/mpris-spec/latest/Player_Interface.html#Method:Seek">freedesktop.org</a>
      */
-    public MPRISBuilder setOnSeek(TypeRunnable<Integer> onSeek) {
+    public MPRISBuilder setOnSeek(TypeRunnable<Long> onSeek) {
         this.playerValues.put("OnSeek", onSeek);
         return this;
     }
