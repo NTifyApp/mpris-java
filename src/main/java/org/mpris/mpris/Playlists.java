@@ -108,7 +108,7 @@ public interface Playlists extends DBusInterface {
          * @param icon The URI of an (optional) icon.
          */
         public PlaylistSignal(DBusPath id, String name, String icon) throws DBusException {
-            super("org/mpris/MediaPlayer2/Playlists");
+            super("/org/mpris/MediaPlayer2/Playlists");
             this.id = id;
             this.name = name;
             this.icon = icon;

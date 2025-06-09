@@ -137,7 +137,7 @@ public interface Player extends DBusInterface {
          * @throws DBusException
          */
         public Seeked(long _timeInUs) throws DBusException {
-            super("org/mpris/MediaPlayer2/TrackList");
+            super("/org/mpris/MediaPlayer2");
             timeInUs = _timeInUs;
         }
 
