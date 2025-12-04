@@ -404,6 +404,16 @@ public class MPRISBuilder {
     /**
      * Whether the client can control the playback position using Seek and SetPosition. This may be different for different tracks.
      * If CanControl is false, this property should also be false.
+     * @see <a href="https://specifications.freedesktop.org/mpris/latest/Player_Interface.html#Property:CanSeek">freedesktop.org</a>
+     */
+    public MPRISBuilder setCanSeek(boolean canSeek) {
+        this.playerValues.put("CanSeek", new Variant<>(canSeek));
+        return this;
+    }
+
+    /**
+     * Whether the client can control the playback position using Seek and SetPosition. This may be different for different tracks.
+     * If CanControl is false, this property should also be false.
      <br>
      <br>
      * Not all media is seekable: it may not be possible to seek when playing some streamed media, for example.
