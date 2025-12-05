@@ -1,0 +1,26 @@
+-classpath
+'/home/werwolf2303/.m2/repository/com/github/hypfvieh/dbus-java/3.3.2/dbus-java-3.3.2.jar:/home/werwolf2303/.m2/repository/com/github/jnr/jnr-unixsocket/0.38.17/jnr-unixsocket-0.38.17.jar:/home/werwolf2303/.m2/repository/com/github/jnr/jnr-ffi/2.2.11/jnr-ffi-2.2.11.jar:/home/werwolf2303/.m2/repository/com/github/jnr/jffi/1.3.9/jffi-1.3.9.jar:/home/werwolf2303/.m2/repository/org/ow2/asm/asm/9.2/asm-9.2.jar:/home/werwolf2303/.m2/repository/org/ow2/asm/asm-commons/9.2/asm-commons-9.2.jar:/home/werwolf2303/.m2/repository/org/ow2/asm/asm-analysis/9.2/asm-analysis-9.2.jar:/home/werwolf2303/.m2/repository/org/ow2/asm/asm-tree/9.2/asm-tree-9.2.jar:/home/werwolf2303/.m2/repository/org/ow2/asm/asm-util/9.2/asm-util-9.2.jar:/home/werwolf2303/.m2/repository/com/github/jnr/jnr-a64asm/1.0.0/jnr-a64asm-1.0.0.jar:/home/werwolf2303/.m2/repository/com/github/jnr/jnr-x86asm/1.0.2/jnr-x86asm-1.0.2.jar:/home/werwolf2303/.m2/repository/com/github/jnr/jnr-constants/0.10.3/jnr-constants-0.10.3.jar:/home/werwolf2303/.m2/repository/com/github/jnr/jnr-enxio/0.32.13/jnr-enxio-0.32.13.jar:/home/werwolf2303/.m2/repository/com/github/jnr/jnr-posix/3.1.15/jnr-posix-3.1.15.jar:/home/werwolf2303/.m2/repository/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar:/home/werwolf2303/.m2/repository/org/jetbrains/annotations/24.0.0/annotations-24.0.0.jar'
+-encoding
+'UTF-8'
+-protected
+-source
+'8'
+-sourcepath
+'/home/werwolf2303/Documents/GitHub/mpris-java/src/main/java'
+-author
+-bottom
+'Copyright &#169; 2025. All rights reserved.'
+-charset
+'UTF-8'
+-d
+'/home/werwolf2303/Documents/GitHub/mpris-java/docs/apidocs'
+-docencoding
+'UTF-8'
+-doctitle
+'mpris-java Nightly API'
+-linkoffline
+'https://docs.oracle.com/javase/8/docs/api' '/home/werwolf2303/Documents/GitHub/mpris-java/target/javadoc-bundle-options'
+-use
+-version
+-windowtitle
+'mpris-java Nightly API'
