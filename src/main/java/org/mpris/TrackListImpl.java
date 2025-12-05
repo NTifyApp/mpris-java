@@ -2,6 +2,7 @@ package org.mpris;
 
 import org.freedesktop.dbus.DBusPath;
 import org.freedesktop.dbus.connections.impl.DBusConnection;
+import org.freedesktop.dbus.errors.NotSupported;
 import org.freedesktop.dbus.errors.PropertyReadOnly;
 import org.freedesktop.dbus.errors.UnknownInterface;
 import org.freedesktop.dbus.errors.UnknownProperty;
@@ -198,14 +199,16 @@ public class TrackListImpl implements DBusProperties, TrackList {
     @Override
     public void AddTrack(String Uri, DBusPath AfterTrack, boolean SetAsCurrent) {
         if(!((Variant<Boolean>) values.get("CanEditTracks")).getValue())
-            return;
+            throw new NotSupported("AddTrack is not supported");
+
         ((TypeRunnable<AddTrack>) values.get("OnAddTrack")).run(new AddTrack(Uri, AfterTrack, SetAsCurrent));
     }
 
     @Override
     public void RemoveTrack(DBusPath TrackId) {
         if(!((Variant<Boolean>) values.get("CanEditTracks")).getValue())
-            return;
+            throw new NotSupported("RemoveTrack is not supported");
+
         ((TypeRunnable<DBusPath>) values.get("OnRemoveTrack")).run(TrackId);
     }
 

@@ -99,7 +99,7 @@ public interface Player extends DBusInterface {
      * /org/mpris/MediaPlayer2/TrackList/NoTrack is not a valid value for this argument.
      * @param x Track position in microseconds. Between 0 and track length
      */
-    void SetPosition(DBusPath Track_Id, long x);
+    void SetPosition(DBusPath Track_Id, long x) throws DBusException;
 
     /**
      * Opens the Uri given as an argument

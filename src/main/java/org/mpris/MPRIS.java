@@ -2,6 +2,7 @@ package org.mpris;
 
 import org.freedesktop.dbus.DBusPath;
 import org.freedesktop.dbus.connections.impl.DBusConnection;
+import org.freedesktop.dbus.errors.NotSupported;
 import org.freedesktop.dbus.errors.PropertyReadOnly;
 import org.freedesktop.dbus.errors.UnknownInterface;
 import org.freedesktop.dbus.errors.UnknownProperty;
@@ -53,6 +54,9 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
                 || ((Variant<Double>) this.playerValues.get("Rate")).getValue() > ((Variant<Double>) this.playerValues.get("MaximumRate")).getValue())
             throw new IllegalArgumentException("Rate must be bigger than MinimumRate and less than MaximumRate");
 
+        // If this is false, clients should assume that all properties on this interface are read-only
+        // (and will raise errors if writing to them is attempted),
+        // no methods are implemented and all other properties starting with "Can" are also false.
         if(!((Variant<Boolean>) this.playerValues.get("CanControl")).getValue()) {
             blockWriting = true;
             this.mediaPlayerValues.put("CanQuit", new Variant<>(false));
@@ -221,6 +225,10 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
         update("HasTrackList", (Variant<?>) mediaPlayerValues.get("HasTrackList"), MPRISObjectPaths.MEDIAPLAYER2);
     }
 
+    public void setTrackList(TrackListImpl trackList) {
+        this.trackList = trackList;
+    }
+
     /**
      * A friendly name to identify the media player to users.
      * This should usually match the name found in .desktop files
@@ -304,16 +312,6 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
      * @see <a href="https://specifications.freedesktop.org/mpris-spec/latest/Player_Interface.html#Property:Rate">freedesktop.org</a>
      */
     public void setRate(double rate) throws DBusException {
-        // The value must fall in the range described by MinimumRate and MaximumRate, and must not be 0.0
-        if(rate == 0.0) {
-            // A value of 0.0 should not be set by the client. If it is, the media player should act as though Pause was called.
-            ((Runnable) this.playerValues.get("OnPause")).run();
-            return;
-        }
-        if(rate < ((Variant<Double>) this.playerValues.get("MinimumRate")).getValue()
-                || rate > ((Variant<Double>) this.playerValues.get("MaximumRate")).getValue())
-            return;
-        // ---
         this.playerValues.put("Rate", new Variant<>(rate));
         update("Rate", new Variant<>(rate), MPRISObjectPaths.PLAYER);
     }
@@ -324,10 +322,6 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
      * @see <a href="https://specifications.freedesktop.org/mpris-spec/latest/Player_Interface.html#Property:Shuffle">freedesktop.org</a>
      */
     public void setShuffle(boolean shuffle) throws DBusException {
-        // If CanControl is false, attempting to set this property should have no effect and raise an error.
-        if(!((Variant<Boolean>) this.playerValues.get("CanControl")).getValue()) {
-            throw new DBusException("Player doesn't support controlling playback");
-        }
         this.playerValues.put("Shuffle", new Variant<>(shuffle));
         update("Shuffle", new Variant<>(shuffle), MPRISObjectPaths.PLAYER);
     }
@@ -350,12 +344,6 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
      * @see <a href="https://specifications.freedesktop.org/mpris-spec/latest/Player_Interface.html#Property:Volume">freedesktop.org</a>
      */
     public void setVolume(double volume) throws DBusException {
-        // When setting, if a negative value is passed, the volume should be set to 0.0.
-        if(volume < 0.0) volume = 0.0;
-        // If CanControl is false, attempting to set this property should have no effect and raise an error.
-        if(!((Variant<Boolean>) this.playerValues.get("CanControl")).getValue()) {
-            throw new DBusException("Player doesn't support controlling playback");
-        }
         this.playerValues.put("Volume", new Variant<>(volume));
         update("Volume", new Variant<>(volume), MPRISObjectPaths.PLAYER);
     }
@@ -367,10 +355,6 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
      * @see <a href="https://specifications.freedesktop.org/mpris-spec/latest/Player_Interface.html#Property:Position">freedesktop.org</a>
      */
     public void setPosition(int microseconds) {
-        // If this is not the case, the CanSeek property is false, and setting this property has no effect and can raise an error.
-        if(!((Variant<Boolean>) this.playerValues.get("CanSeek")).getValue()) {
-            return;
-        }
         this.playerValues.put("Position", new Variant<>(microseconds, "x"));
     }
 
@@ -472,7 +456,8 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
     public void Raise() {
         // In this case, the CanRaise property is false and this method does nothing.
         if(!((Variant<Boolean>) mediaPlayerValues.get("CanRaise")).getValue())
-            return;
+            // If false, calling Raise will have no effect, and may raise a NotSupported error
+            throw new NotSupported("Raise is not supported");
         ((Runnable) mediaPlayerValues.get("OnRaise")).run();
     }
 
@@ -480,7 +465,8 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
     public void Quit() {
         // In this case, the CanQuit property is false and this method does nothing.
         if(!((Variant<Boolean>) mediaPlayerValues.get("CanQuit")).getValue())
-            return;
+            // If false, calling Quit will have no effect, and may raise a NotSupported error
+            throw new NotSupported("Quit is not supported");
         ((Runnable) mediaPlayerValues.get("OnQuit")).run();
     }
 
@@ -541,14 +527,16 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
     }
 
     @Override
-    public void SetPosition(DBusPath Track_Id, long x) {
+    public void SetPosition(DBusPath Track_Id, long x) throws DBusException {
         // If the CanSeek property is false, this has no effect.
         if(!((Variant<Boolean>) playerValues.get("CanSeek")).getValue())
-            return;
+            throw new NotSupported("SetPosition is not supported");
+
         ((TypeRunnable<Position>) playerValues.get("OnSetPosition")).run(new Position(
                 Track_Id,
                 x
         ));
+        emitSeeked((int) x);
     }
 
     @Override
@@ -617,57 +605,93 @@ public class MPRIS implements MediaPlayer2, Player, DBusProperties {
 
     @Override
     public void Set(String interface_name, String property_name, Variant<?> value) throws DBusException {
-        if(blockWriting) throw new PropertyReadOnly("CanControl blocked writing to all properties");
         switch (interface_name) {
             case "org.mpris.MediaPlayer2": {
-                if(mediaPlayerValues.containsKey(property_name)) {
-                    if (mediaPlayerReadWriteValues.contains(property_name)) {
-                        if(!Objects.equals(((Variant<?>) mediaPlayerValues.get(property_name)).getSig(), value.getSig())) {
-                            throw new DBusException("Variant has an invalid type: " + value.getSig());
-                        }
-                        mediaPlayerValues.put(property_name, value);
-                    } else throw new PropertyReadOnly(property_name);
-                    if (property_name.equals("Fullscreen")) {
-                        if(mediaPlayerValues.containsKey("OnFullscreen")) {
-                            ((TypeRunnable<Boolean>) mediaPlayerValues.get("OnFullscreen")).run((Boolean) value.getValue());
-                        }
-                    }
-                    update(property_name, value, MPRISObjectPaths.MEDIAPLAYER2);
-                    return;
+                if (!playerValues.containsKey(property_name))
+                    throw new DBusException("Property " + property_name + " not found");
+
+                if(!Objects.equals(((Variant<?>) mediaPlayerValues.get(property_name)).getSig(), value.getSig()))
+                    throw new DBusException("Variant has an invalid type: " + value.getSig());
+
+                if (!mediaPlayerReadWriteValues.contains(property_name))
+                    throw new PropertyReadOnly(property_name + " is read-only");
+
+                if (!((Variant<Boolean>) this.playerValues.get("CanSetFullscreen")).getValue())
+                    throw new NotSupported("Loop status is not supported");
+
+                // Fullscreen is the only read/write property
+                setFullscreen((Boolean) value.getValue());
+
+                if(mediaPlayerValues.containsKey("OnFullscreen")) {
+                    ((TypeRunnable<Boolean>) mediaPlayerValues.get("OnFullscreen")).run((Boolean) value.getValue());
                 }
                 break;
             }
             case "org.mpris.MediaPlayer2.Player": {
-                if(playerValues.containsKey(property_name)) {
-                    if (playerReadWriteValues.contains(property_name)) {
-                        if(!Objects.equals(((Variant<?>) playerValues.get(property_name)).getSig(), value.getSig())) {
-                            throw new DBusException("Variant has an invalid type: " + value.getSig());
+                // If CanControl is false, all properties are read-only
+                if(blockWriting) throw new PropertyReadOnly("CanControl blocked writing to all properties");
+
+                if(!playerValues.containsKey(property_name))
+                    throw new DBusException("Property " + property_name + " not found");
+
+                if (!playerReadWriteValues.contains(property_name))
+                    throw new PropertyReadOnly(property_name + " is read-only");
+
+                if(!Objects.equals(((Variant<?>) playerValues.get(property_name)).getSig(), value.getSig()))
+                    throw new DBusException("Variant has an invalid type: " + value.getSig());
+
+                switch (property_name) {
+                    case "LoopStatus":
+                        if (!((Variant<Boolean>) this.playerValues.get("CanControl")).getValue())
+                            throw new NotSupported("Loop status is not supported");
+
+                        setLoopStatus(LoopStatus.valueOf((String) value.getValue()));
+                        if(playerValues.containsKey("OnLoopStatus")) {
+                            ((TypeRunnable<LoopStatus>) playerValues.get("OnLoopStatus")).run(LoopStatus.valueOf((String) value.getValue()));
                         }
-                        playerValues.put(property_name, value);
-                    } else throw new PropertyReadOnly(property_name);
-                    switch (property_name) {
-                        case "LoopStatus":
-                            if(playerValues.containsKey("OnLoopStatus")) {
-                                ((TypeRunnable<LoopStatus>) playerValues.get("OnLoopStatus")).run(LoopStatus.valueOf((String) value.getValue()));
-                            }
+                        break;
+                    case "Rate":
+                        double rate = (Double) value.getValue();
+
+                        // The value must fall in the range described by MinimumRate and MaximumRate, and must not be 0.0
+                        if(rate == 0.0) {
+                            // A value of 0.0 should not be set by the client. If it is, the media player should act as though Pause was called.
+                            ((Runnable) this.playerValues.get("OnPause")).run();
                             break;
-                        case "Rate":
-                            if(playerValues.containsKey("OnRate")) {
-                                ((TypeRunnable<Double>) playerValues.get("OnRate")).run((Double) value.getValue());
-                            }
+                        }
+                        if(rate < ((Variant<Double>) this.playerValues.get("MinimumRate")).getValue()
+                                || rate > ((Variant<Double>) this.playerValues.get("MaximumRate")).getValue())
                             break;
-                        case "Shuffle":
-                            if(playerValues.containsKey("OnShuffle")) {
-                                ((TypeRunnable<Boolean>) playerValues.get("OnShuffle")).run((Boolean) value.getValue());
-                            }
-                            break;
-                        case "Volume":
-                            if(playerValues.containsKey("OnVolume")) {
-                                ((TypeRunnable<Double>) playerValues.get("OnVolume")).run((Double) value.getValue());
-                            }
-                    }
-                    update(property_name, value, MPRISObjectPaths.PLAYER);
-                    return;
+
+                        setRate(rate);
+                        if(playerValues.containsKey("OnRate")) {
+                            ((TypeRunnable<Double>) playerValues.get("OnRate")).run((Double) value.getValue());
+                        }
+                        break;
+                    case "Shuffle":
+                        // If CanControl is false, attempting to set this property should have no effect and raise an error.
+                        if(!((Variant<Boolean>) this.playerValues.get("CanControl")).getValue())
+                            throw new DBusException("Player doesn't support controlling playback");
+
+                        setShuffle((Boolean) value.getValue());
+                        if(playerValues.containsKey("OnShuffle")) {
+                            ((TypeRunnable<Boolean>) playerValues.get("OnShuffle")).run((Boolean) value.getValue());
+                        }
+                        break;
+                    case "Volume":
+                        double volume = (Double) value.getValue();
+
+                        // When setting, if a negative value is passed, the volume should be set to 0.0.
+                        if(volume < 0.0) volume = 0.0;
+
+                        // If CanControl is false, attempting to set this property should have no effect and raise an error.
+                        if(!((Variant<Boolean>) this.playerValues.get("CanControl")).getValue())
+                            throw new DBusException("Player doesn't support controlling playback");
+
+                        setVolume(volume);
+                        if(playerValues.containsKey("OnVolume")) {
+                            ((TypeRunnable<Double>) playerValues.get("OnVolume")).run((Double) value.getValue());
+                        }
                 }
                 break;
             }
